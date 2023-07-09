@@ -24,6 +24,10 @@ export async function signUp(req, res) {
             return res.status(422).send(errors);
         } else {
             await db.collection('users').insertOne(user);
+            await db.collection("users").find().toArray()
+                .then(users => {
+                    console.log(users); // array de usuários
+                })
             res.sendStatus(201);
         }
     } catch {
