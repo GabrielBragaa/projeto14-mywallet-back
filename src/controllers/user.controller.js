@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import { signupSchema } from '../schemas/signup.schema.js';
 import { signInSchema } from '../schemas/signin.schema.js';
 import {db} from '../database/database.connection.js'
+import { v4 as uuid } from 'uuid';
 
 export async function signUp(req, res) {
     const {name, email, password} = req.body;
@@ -56,7 +57,10 @@ export async function signIn(req, res) {
         }
 
         if (user && bcrypt.compareSync(password, user.password)) {
-            res.sendStatus(200)
+            const token = uuid();
+            await db.collection('sessions').insertOne({userId: user._id, token});
+            localStorage.setItem("token", token);
+            res.send(token).status(200);
         }
     } catch (err) {
         res.send(err).status(500);
