@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import { signupSchema } from '../schemas/signup.schema.js';
+import { signInSchema } from '../schemas/signin.schema.js';
 import {db} from '../database/database.connection.js'
 
 export async function signUp(req, res) {
@@ -30,7 +31,34 @@ export async function signUp(req, res) {
                 })
             res.sendStatus(201);
         }
-    } catch {
-        res.sendStatus(500);
+    } catch (err) {
+        res.send(err).status(500);
+    }
+}
+
+export async function signIn(req, res) {
+    const {email, password} = req.body;
+    const user = await db.collection('users').findOne({email});
+    const validation = signInSchema.validate(req.body, {abortEarly: false});
+
+    try {
+        if (!user) {
+            return res.sendStatus(404);
+        }
+
+        if (!bcrypt.compareSync(password, user.password)) {
+            return res.sendStatus(401);
+        }
+        
+        if (validation.error) {
+            const errors = validation.error.details.map(detail => detail.message);
+            return res.send(errors).status(422);
+        }
+
+        if (user && bcrypt.compareSync(password, user.password)) {
+            res.sendStatus(200)
+        }
+    } catch (err) {
+        res.send(err).status(500);
     }
 }
