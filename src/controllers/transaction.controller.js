@@ -2,15 +2,24 @@ import {db} from '../database/database.connection.js'
 import {transactionSchema} from '../schemas/transaction.schema.js'
 
 export async function input(req, res) {
-    const {value, description, type} = req.body;
+    const {authorization} = req.headers;
+    const token = authorization?.replace('Bearer ', '');
+    let {value, description} = req.body;
+    value = Number(value);
+    const type = req.params.tipo;
     const validation = transactionSchema.validate(req.body, {abortEarly: false});
     const input = {
         value,
         description,
         type
     }
-
+    
     try {
+        if (!token) {
+            console.log('Token chegando na API: ', token);
+            return res.status(401).send('Faça login novamente.')
+        }
+
         const alreadyExists = await db.collection('transactions').findOne({input});
 
         if (alreadyExists) {
@@ -25,10 +34,6 @@ export async function input(req, res) {
             return res.status(422).send('Preencha todos os campos.')
         }
         
-        if (input.type !== 'entrada') {
-            return res.status(422).send('Você não pode enviar algo que não seja uma entrada na rota de entradas.');
-        }
-        
         if (validation.error) {
             const errors = validation.error.details.map(detail => detail.message);
             return send(errors).status(422);
@@ -38,6 +43,6 @@ export async function input(req, res) {
         res.sendStatus(201);
 
     } catch (err) {
-
+        return res.status(500).send(err);
     }
 }
