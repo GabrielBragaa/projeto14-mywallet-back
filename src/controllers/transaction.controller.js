@@ -1,3 +1,4 @@
+import { ObjectId } from 'mongodb';
 import {db} from '../database/database.connection.js'
 import {transactionSchema} from '../schemas/transaction.schema.js'
 
@@ -11,12 +12,12 @@ export async function input(req, res) {
     const input = {
         value,
         description,
-        type
+        type,
+        token
     }
     
     try {
         if (!token) {
-            console.log('Token chegando na API: ', token);
             return res.status(401).send('Faça login novamente.')
         }
 
@@ -40,9 +41,22 @@ export async function input(req, res) {
         }
 
         await db.collection('transactions').insertOne({input});
-        res.sendStatus(201);
+
+        res.send(db.collection('transactions').findOne({input}));
 
     } catch (err) {
         return res.status(500).send(err);
+    }
+}
+
+export async function output(req, res) {
+    const {authorization} = req.headers;
+    const token = authorization?.replace('Bearer ', '');
+
+    try {
+        const transactions = await db.collection('transactions').find({'input.token': token}).toArray();
+        res.send(transactions);
+    } catch (err) {
+        console.log(err);
     }
 }
