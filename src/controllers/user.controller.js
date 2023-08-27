@@ -40,6 +40,7 @@ export async function signUp(req, res) {
 export async function signIn(req, res) {
     const {email, password} = req.body;
     const user = await db.collection('users').findOne({email});
+    const username = user.name;
     const validation = signInSchema.validate(req.body, {abortEarly: false});
 
     try {
@@ -58,8 +59,9 @@ export async function signIn(req, res) {
 
         if (user && bcrypt.compareSync(password, user.password)) {
             const token = uuid();
+            const data = [{token: token, name: user.name}]
             await db.collection('sessions').insertOne({userId: user._id, token});
-            res.send(token).status(200);
+            res.send(data).status(200);
         }
     } catch (err) {
         res.send(err).status(500);
